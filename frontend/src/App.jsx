@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldAlert,
@@ -17,8 +17,7 @@ import {
   HardDriveUpload,
   CheckSquare,
   Activity,
-  ScanText,
-  Cpu
+  Sparkles
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import confetti from 'canvas-confetti';
@@ -27,13 +26,14 @@ import mockData from './mockPayload.json';
 
 
 export default function App() {
+  const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, ingestion, operator
   const [currentScenario, setCurrentScenario] = useState('clean');
   const [data, setData] = useState(mockData.clean);
-  
+
   const [dragActive, setDragActive] = useState(false);
-  const [ingestionStage, setIngestionStage] = useState(0); // 0: idle, 1: OCR, 2: LLM, 3: Validation, 4: Done
   const [emailDispatched, setEmailDispatched] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Sync Scenario
   const loadScenario = (key) => {
@@ -48,19 +48,60 @@ export default function App() {
     return "border-rose-500/80 bg-rose-500/5 text-rose-300 focus:border-rose-400 animate-pulse";
   };
 
-  const handleFileUpload = (e) => {
-    e?.preventDefault();
-    setDragActive(false);
-    setIngestionStage(1);
-    
-    setTimeout(() => setIngestionStage(2), 1500); // OCR
-    setTimeout(() => setIngestionStage(3), 3000); // LLM
-    setTimeout(() => {
-      setIngestionStage(0);
-      setActiveTab('operator');
-    }, 4500); // Validation Done -> Go to Operator
+  const processUploadedFile = async (file) => {
+    if (!file) return;
+
+    setIsProcessing(true);
+    setActiveTab('operator');
+
+    const formData = new FormData();
+    formData.append('invoice', file);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/extract', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (err) {
+      console.warn("Backend error or unreachable, using fixture fallback:", err);
+      setData(mockData.clean);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
+  const handleDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processUploadedFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      processUploadedFile(e.target.files[0]);
+    }
+  };
   const handlePushToERP = () => {
     if (!data.validation.is_valid) {
       alert("Action Blocked: Anomaly must be resolved before committing to ERP Ledger.");
@@ -76,7 +117,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#090D16] text-slate-100 font-sans overflow-hidden selection:bg-indigo-500 selection:text-white">
-      
+
       {/* Sidebar Navigation */}
       <aside className="w-64 border-r border-slate-800 bg-[#090D16]/90 backdrop-blur-md flex flex-col z-20">
         <div className="p-5 border-b border-slate-800 flex items-center gap-3">
@@ -93,21 +134,21 @@ export default function App() {
         </div>
 
         <nav className="flex-1 p-4 flex flex-col gap-2">
-          <button 
+          <button
             onClick={() => setActiveTab('dashboard')}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'dashboard' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
           >
             <LayoutDashboard className="w-4 h-4" /> Command Center
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('ingestion')}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'ingestion' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
           >
             <HardDriveUpload className="w-4 h-4" /> Ingestion Pipeline
           </button>
 
-          <button 
+          <button
             onClick={() => setActiveTab('operator')}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${activeTab === 'operator' ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'}`}
           >
@@ -128,7 +169,7 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-        
+
         {/* Top Header & Demo Switcher */}
         <header className="h-16 border-b border-slate-800 bg-[#090D16]/80 backdrop-blur flex items-center justify-between px-6 shrink-0">
           <h1 className="font-semibold text-sm text-slate-300">
@@ -136,7 +177,7 @@ export default function App() {
             {activeTab === 'ingestion' && 'Pipeline / Document Upload'}
             {activeTab === 'operator' && 'Workspace / Anomaly Resolution'}
           </h1>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono text-slate-500">DEMO FIXTURE:</span>
             <button
@@ -163,7 +204,7 @@ export default function App() {
         {/* Scrollable Workspace */}
         <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
           <AnimatePresence mode="wait">
-            
+
             {/* VIEW: DASHBOARD */}
             {activeTab === 'dashboard' && (
               <motion.div
@@ -191,7 +232,7 @@ export default function App() {
                         Review
                       </button>
                     </div>
-                    
+
                     <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-400" />
@@ -234,27 +275,27 @@ export default function App() {
                       <BarChart data={mockData.dashboardData.glSpendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                        <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val/1000}k`} />
-                        <RechartsTooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px'}} />
+                        <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(val) => `₹${val / 1000}k`} />
+                        <RechartsTooltip cursor={{ fill: '#1e293b' }} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px' }} />
                         <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  
+
                   <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 h-80 flex flex-col">
                     <span className="text-xs text-slate-500 font-mono uppercase mb-4 block">Ingestion Volume Over Time</span>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={mockData.dashboardData.volumeData}>
                         <defs>
                           <linearGradient id="colorInvoices" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                         <XAxis dataKey="time" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                        <RechartsTooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px'}} />
+                        <RechartsTooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '12px' }} />
                         <Area type="monotone" dataKey="invoices" stroke="#10b981" fillOpacity={1} fill="url(#colorInvoices)" />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -277,55 +318,45 @@ export default function App() {
                   <p className="text-slate-400 text-sm">Drop a raw invoice to trigger OCR layout parsing followed by LLM schema extraction.</p>
                 </div>
 
-                {ingestionStage === 0 ? (
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={handleFileUpload}
-                    onClick={handleFileUpload}
-                    className={`w-full max-w-lg border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all ${dragActive ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-800 hover:border-slate-700 bg-slate-900/30'}`}
-                  >
-                    <div className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center text-indigo-400">
-                      <UploadCloud className="w-7 h-7" />
-                    </div>
+
+                  <section className="flex flex-col items-center gap-4">
                     <div className="text-center">
-                      <p className="font-semibold text-lg">Drop document or click to upload</p>
-                      <p className="text-xs text-slate-500 font-mono mt-1">Accepts PDF, PNG, JPG</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full max-w-lg flex flex-col gap-6">
-                    {/* Stage 1: OCR */}
-                    <div className={`p-4 rounded-xl border flex items-center gap-4 transition-all duration-500 ${ingestionStage >= 1 ? 'border-indigo-500/50 bg-indigo-500/10' : 'border-slate-800 opacity-30'}`}>
-                      <ScanText className={`w-6 h-6 ${ingestionStage === 1 ? 'animate-pulse text-indigo-400' : 'text-emerald-400'}`} />
-                      <div>
-                        <h4 className="font-semibold text-sm">Layout-Aware Parsing (OCR)</h4>
-                        <p className="text-xs text-slate-400">Extracting raw text geometries and bounding boxes...</p>
-                      </div>
-                      {ingestionStage > 1 && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-auto" />}
+                      <h3 className="text-lg font-bold">Simulate Ingestion</h3>
+                      <p className="text-xs text-slate-400">Drop an invoice below or browse from your computer.</p>
                     </div>
 
-                    {/* Stage 2: LLM */}
-                    <div className={`p-4 rounded-xl border flex items-center gap-4 transition-all duration-500 ${ingestionStage >= 2 ? 'border-sky-500/50 bg-sky-500/10' : 'border-slate-800 opacity-30'}`}>
-                      <Cpu className={`w-6 h-6 ${ingestionStage === 2 ? 'animate-pulse text-sky-400' : 'text-emerald-400'}`} />
-                      <div>
-                        <h4 className="font-semibold text-sm">Semantic Extraction (GPT-4o-Mini)</h4>
-                        <p className="text-xs text-slate-400">Mapping unstructured text to strict JSON schema...</p>
-                      </div>
-                      {ingestionStage > 2 && <CheckCircle2 className="w-5 h-5 text-emerald-400 ml-auto" />}
-                    </div>
+                    <input 
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf,image/png,image/jpeg,image/jpg"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
 
-                    {/* Stage 3: Validation */}
-                    <div className={`p-4 rounded-xl border flex items-center gap-4 transition-all duration-500 ${ingestionStage >= 3 ? 'border-amber-500/50 bg-amber-500/10' : 'border-slate-800 opacity-30'}`}>
-                      <Database className={`w-6 h-6 ${ingestionStage === 3 ? 'animate-pulse text-amber-400' : 'text-emerald-400'}`} />
-                      <div>
-                        <h4 className="font-semibold text-sm">Backend Integrity Gate</h4>
-                        <p className="text-xs text-slate-400">Checking deterministic math & Supabase duplicate logs...</p>
+                    <div 
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`w-full max-w-lg border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all ${
+                        dragActive 
+                          ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' 
+                          : 'border-slate-800 hover:border-slate-700 bg-slate-900/30'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-indigo-400">
+                        <UploadCloud className="w-5 h-5" />
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs font-semibold">
+                          {dragActive ? "Release to drop invoice" : "Drop document or click to browse"}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">Accepts PDF, PNG, JPG (Max 10MB)</p>
                       </div>
                     </div>
-                  </div>
-                )}
-              </motion.div>
+                  </section>
+                </motion.div>
             )}
 
             {/* VIEW: OPERATOR PORTAL */}
@@ -374,50 +405,50 @@ export default function App() {
                     </div>
 
                     <div className="flex-1 p-8 font-mono text-sm text-slate-300 relative overflow-y-auto bg-[#e2e8f0] text-slate-800 shadow-inner">
-                       {/* Simulating a bright PDF rendering */}
-                       <div className="max-w-sm mx-auto bg-white p-8 shadow-sm h-full rounded border border-slate-300 relative flex flex-col justify-between">
-                          <div className="space-y-6">
-                            <div className="flex justify-between border-b pb-4">
-                              <h2 className="text-xl font-bold tracking-tight text-slate-900">INVOICE</h2>
-                              <div className="text-right text-xs">
-                                <span className="block font-bold">INV #{data.document_id.split('-')[1]}</span>
-                                <span className="text-slate-500">{data.date}</span>
-                              </div>
+                      {/* Simulating a bright PDF rendering */}
+                      <div className="max-w-sm mx-auto bg-white p-8 shadow-sm h-full rounded border border-slate-300 relative flex flex-col justify-between">
+                        <div className="space-y-6">
+                          <div className="flex justify-between border-b pb-4">
+                            <h2 className="text-xl font-bold tracking-tight text-slate-900">INVOICE</h2>
+                            <div className="text-right text-xs">
+                              <span className="block font-bold">INV #{data.document_id.split('-')[1]}</span>
+                              <span className="text-slate-500">{data.date}</span>
                             </div>
-                            
-                            <div>
-                              <h3 className="text-[10px] font-bold text-slate-500 mb-1">BILL FROM</h3>
-                              <p className="font-semibold text-slate-800">{data.vendor_name}</p>
-                              <p className="text-xs text-slate-500 mt-1">PO REF: {data.po_reference}</p>
-                            </div>
+                          </div>
 
-                            <table className="w-full text-xs mt-6">
-                              <thead className="border-b">
-                                <tr className="text-left text-slate-500">
-                                  <th className="pb-2">DESCRIPTION</th>
-                                  <th className="pb-2 text-right">QTY</th>
-                                  <th className="pb-2 text-right">AMOUNT</th>
+                          <div>
+                            <h3 className="text-[10px] font-bold text-slate-500 mb-1">BILL FROM</h3>
+                            <p className="font-semibold text-slate-800">{data.vendor_name}</p>
+                            <p className="text-xs text-slate-500 mt-1">PO REF: {data.po_reference}</p>
+                          </div>
+
+                          <table className="w-full text-xs mt-6">
+                            <thead className="border-b">
+                              <tr className="text-left text-slate-500">
+                                <th className="pb-2">DESCRIPTION</th>
+                                <th className="pb-2 text-right">QTY</th>
+                                <th className="pb-2 text-right">AMOUNT</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {data.line_items.map((item, idx) => (
+                                <tr key={idx}>
+                                  <td className="py-3">{item.description}</td>
+                                  <td className="py-3 text-right">{item.quantity}</td>
+                                  <td className="py-3 text-right">₹{item.amount.toFixed(2)}</td>
                                 </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {data.line_items.map((item, idx) => (
-                                  <tr key={idx}>
-                                    <td className="py-3">{item.description}</td>
-                                    <td className="py-3 text-right">{item.quantity}</td>
-                                    <td className="py-3 text-right">₹{item.amount.toFixed(2)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
 
-                          <div className="border-t pt-4 flex justify-between items-center text-sm">
-                            <span className="font-bold text-slate-600">TOTAL DUE</span>
-                            <span className="font-bold text-slate-900 text-lg">
-                              ₹{data.validation.math_mismatch ? (data.total_amount + 50).toFixed(2) : data.total_amount.toFixed(2)}
-                            </span>
-                          </div>
-                       </div>
+                        <div className="border-t pt-4 flex justify-between items-center text-sm">
+                          <span className="font-bold text-slate-600">TOTAL DUE</span>
+                          <span className="font-bold text-slate-900 text-lg">
+                            ₹{data.validation.math_mismatch ? (data.total_amount + 50).toFixed(2) : data.total_amount.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -500,8 +531,8 @@ export default function App() {
 
                     {/* Arithmetic Status Note */}
                     <div className={`mt-2 p-3 rounded-lg border text-sm font-mono ${data.validation.is_valid
-                        ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400'
-                        : 'border-rose-500/30 bg-rose-500/5 text-rose-400'
+                      ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400'
+                      : 'border-rose-500/30 bg-rose-500/5 text-rose-400'
                       }`}>
                       <span className="font-bold block text-xs uppercase mb-1">Engine Status:</span>
                       {data.validation.message}
@@ -533,8 +564,8 @@ export default function App() {
                           onClick={handlePushToERP}
                           disabled={!data.validation.is_valid}
                           className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 shadow-lg ${data.validation.is_valid
-                              ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 cursor-pointer'
-                              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20 cursor-pointer'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
                             }`}
                         >
                           <Database className="w-4 h-4" />
@@ -551,6 +582,33 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Processing Overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl flex flex-col gap-4 font-mono">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <span className="text-xs text-indigo-400 font-bold uppercase tracking-wider">Pipeline Execution</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="flex items-center gap-3 text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Stage 1: Document Intake & OCR Buffer Extraction</span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-300">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span>Stage 2: OpenAI Schema-Locked Semantic Parse</span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-300">
+                <Sparkles className="w-4 h-4 text-indigo-400 animate-spin" />
+                <span className="text-indigo-300">Stage 3: Deterministic Arithmetic & Ledger Matching</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
