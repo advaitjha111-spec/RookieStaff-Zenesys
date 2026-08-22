@@ -1,0 +1,100 @@
+{
+  "clean": {
+    "document_id": "doc_9982_live",
+    "vendor_name": "TechSupply Co",
+    "date": "2026-08-21",
+    "po_reference": "PO-9982",
+    "gl_code": "GL-500: Hardware",
+    "line_items": [
+        { "description": "Server Rack 42U", "quantity": 1, "unit_price": 800.00, "amount": 800.00 },
+        { "description": "Patch Cables (100pk)", "quantity": 2, "unit_price": 200.00, "amount": 400.00 }
+    ],
+    "subtotal": 1200.00,
+    "tax_amount": 0.00,
+    "total_amount": 1200.00,
+    "confidence_scores": {
+        "vendor_name": 0.96,
+        "date": 0.98,
+        "po_reference": 0.62,
+        "gl_code": 0.94,
+        "total_amount": 0.99
+    },
+    "validation": {
+        "is_valid": true,
+        "is_duplicate": false,
+        "math_mismatch": false,
+        "message": "All integrity checks passed. Ready for ERP commit."
+    }
+  },
+  "duplicate": {
+    "document_id": "doc_9983_dup",
+    "vendor_name": "TechSupply Co",
+    "date": "2026-08-21",
+    "po_reference": "PO-9982",
+    "gl_code": "GL-500: Hardware",
+    "line_items": [
+        { "description": "Server Rack 42U", "quantity": 1, "unit_price": 800.00, "amount": 800.00 },
+        { "description": "Patch Cables (100pk)", "quantity": 2, "unit_price": 200.00, "amount": 400.00 }
+    ],
+    "subtotal": 1200.00,
+    "tax_amount": 0.00,
+    "total_amount": 1200.00,
+    "confidence_scores": {
+        "vendor_name": 0.96,
+        "date": 0.98,
+        "po_reference": 0.92,
+        "gl_code": 0.94,
+        "total_amount": 0.99
+    },
+    "validation": {
+        "is_valid": false,
+        "is_duplicate": true,
+        "math_mismatch": false,
+        "message": "Supabase exact match found for vendor & total. Duplicate halted."
+    }
+  },
+  "mismatch": {
+    "document_id": "doc_9984_err",
+    "vendor_name": "CloudHost LLC",
+    "date": "2026-08-22",
+    "po_reference": "PO-1055",
+    "gl_code": "GL-400: Software",
+    "line_items": [
+        { "description": "Cloud Compute Q3", "quantity": 1, "unit_price": 500.00, "amount": 500.00 },
+        { "description": "Database Storage", "quantity": 1, "unit_price": 50.00, "amount": 50.00 }
+    ],
+    "subtotal": 550.00,
+    "tax_amount": 0.00,
+    "total_amount": 500.00,
+    "confidence_scores": {
+        "vendor_name": 0.98,
+        "date": 0.98,
+        "po_reference": 0.88,
+        "gl_code": 0.95,
+        "total_amount": 0.45
+    },
+    "validation": {
+        "is_valid": false,
+        "is_duplicate": false,
+        "math_mismatch": true,
+        "message": "Arithmetic failure: Line items sum to ₹550.00, stated total is ₹500.00."
+    }
+  },
+  "dashboardData": {
+    "volumeData": [
+      { "time": "08:00", "invoices": 12 },
+      { "time": "09:00", "invoices": 25 },
+      { "time": "10:00", "invoices": 45 },
+      { "time": "11:00", "invoices": 30 },
+      { "time": "12:00", "invoices": 65 },
+      { "time": "13:00", "invoices": 80 },
+      { "time": "14:00", "invoices": 40 }
+    ],
+    "glSpendData": [
+      { "name": "Software", "value": 45000 },
+      { "name": "Hardware", "value": 32000 },
+      { "name": "Travel", "value": 15000 },
+      { "name": "Office", "value": 8000 }
+    ]
+  }
+}
