@@ -1,30 +1,10 @@
 {
-  "dependencies": {
-    "@supabase/supabase-js": "^2.112.3",
-    "recharts": "^3.10.1",
-    "resend": "^6.22.0"
-  },
   "name": "rookie-staff-zenesys",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "devDependencies": {
-    "concurrently": "^10.0.5"
-  },
+  "private": true,
   "scripts": {
-    "dev": "concurrently \"cd backend && node server.js\" \"cd frontend && npm run dev\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/advaitjha111-spec/RookieStaff-Zenesys.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/advaitjha111-spec/RookieStaff-Zenesys/issues"
-  },
-  "homepage": "https://github.com/advaitjha111-spec/RookieStaff-Zenesys#readme"
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/server.js",
+    "serve": "npm run build && npm run start"
+  }
 }

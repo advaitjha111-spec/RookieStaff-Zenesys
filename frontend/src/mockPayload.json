@@ -4,6 +4,7 @@
     "vendor_name": "TechSupply Co",
     "date": "2026-08-21",
     "po_reference": "PO-9982",
+    "tolerance_delta": "< 0.05%",
     "gl_code": "GL-500: Hardware",
     "line_items": [
         { "description": "Server Rack 42U", "quantity": 1, "unit_price": 800.00, "amount": 800.00 },
@@ -24,13 +25,15 @@
         "is_duplicate": false,
         "math_mismatch": false,
         "message": "All integrity checks passed. Ready for ERP commit."
-    }
+    },
+    "idempotency_key": "hash_ab92x83f0c19a4e7"
   },
   "duplicate": {
     "document_id": "doc_9983_dup",
     "vendor_name": "TechSupply Co",
     "date": "2026-08-21",
     "po_reference": "PO-9982",
+    "tolerance_delta": "< 0.05%",
     "gl_code": "GL-500: Hardware",
     "line_items": [
         { "description": "Server Rack 42U", "quantity": 1, "unit_price": 800.00, "amount": 800.00 },
@@ -50,14 +53,16 @@
         "is_valid": false,
         "is_duplicate": true,
         "math_mismatch": false,
-        "message": "Supabase exact match found for vendor & total. Duplicate halted."
-    }
+        "message": "Idempotent lock triggered. Duplicate ledger write halted."
+    },
+    "idempotency_key": "hash_ab92x83f0c19a4e7"
   },
   "mismatch": {
     "document_id": "doc_9984_err",
     "vendor_name": "CloudHost LLC",
     "date": "2026-08-22",
     "po_reference": "PO-1055",
+    "tolerance_delta": "> 5.00%",
     "gl_code": "GL-400: Software",
     "line_items": [
         { "description": "Cloud Compute Q3", "quantity": 1, "unit_price": 500.00, "amount": 500.00 },
@@ -78,7 +83,8 @@
         "is_duplicate": false,
         "math_mismatch": true,
         "message": "Arithmetic failure: Line items sum to ₹550.00, stated total is ₹500.00."
-    }
+    },
+    "idempotency_key": "hash_cf21y74e1d28b5f8"
   },
   "dashboardData": {
     "volumeData": [
