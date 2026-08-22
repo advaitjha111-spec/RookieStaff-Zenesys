@@ -27,13 +27,25 @@
   src: url("instrument-serif-italic.woff2") format("woff2");
 }
 
-.landing-page-container {
+:root:not(.dark) .landing-page-container {
+  --bg: #F8FAFC;
+  --text: #0F172A;
+  --muted: #64748B;
+  --stat: #334155;
+  --border: rgba(0, 0, 0, 0.16);
+  --border-soft: rgba(0, 0, 0, 0.08);
+}
+
+:root.dark .landing-page-container {
   --bg: #000000;
   --text: #ffffff;
   --muted: #9a9a9a;
   --stat: #d8d8d8;
   --border: rgba(255, 255, 255, 0.16);
   --border-soft: rgba(255, 255, 255, 0.12);
+}
+
+.landing-page-container {
 
   --logo: 15.5px;
   --logo-mark: 22px;

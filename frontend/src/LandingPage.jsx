@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import './LandingPage.css';
 
-export default function LandingPage({ onGetStarted }) {
+export default function LandingPage({ onGetStarted, currentUser, onOpenAuth, isDark, toggleTheme }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const containerRef = useRef(null);
 
@@ -82,9 +83,21 @@ export default function LandingPage({ onGetStarted }) {
           </a>
 
           <div className="header-actions">
-            <button onClick={onGetStarted} className="btn btn-ghost header-auth appear appear--scale" style={{ '--d': '0.30s' }}>Sign In</button>
-            <button onClick={onGetStarted} className="btn btn-ghost header-auth appear appear--scale" style={{ '--d': '0.32s' }}>Sign Up</button>
-            <button onClick={onGetStarted} className="btn btn-solid header-cta appear appear--scale" style={{ '--d': '0.34s' }}>Get Started</button>
+            <button onClick={toggleTheme} className="btn btn-icon header-auth appear appear--scale" style={{ '--d': '0.28s' }} aria-label="Toggle Theme">
+              {isDark ? <Sun className="w-5 h-5 text-white" /> : <Moon className="w-5 h-5 text-slate-900" />}
+            </button>
+            
+            {!currentUser ? (
+              <>
+                <button onClick={() => onOpenAuth('signin')} className="btn btn-ghost header-auth appear appear--scale" style={{ '--d': '0.30s' }}>Sign In</button>
+                <button onClick={() => onOpenAuth('signup')} className="btn btn-ghost header-auth appear appear--scale" style={{ '--d': '0.32s' }}>Sign Up</button>
+                <button onClick={onGetStarted} className="btn btn-solid header-cta appear appear--scale" style={{ '--d': '0.34s' }}>Get Started</button>
+              </>
+            ) : (
+              <button onClick={onGetStarted} className="btn btn-solid header-cta appear appear--scale" style={{ '--d': '0.30s' }}>
+                Go to Dashboard
+              </button>
+            )}
             <button 
               className="burger" 
               aria-controls="site-nav" 

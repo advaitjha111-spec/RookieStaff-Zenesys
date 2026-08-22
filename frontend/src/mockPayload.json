@@ -28,6 +28,35 @@
     },
     "idempotency_key": "hash_ab92x83f0c19a4e7"
   },
+  "clean_apex": {
+    "document_id": "doc_0193_live",
+    "vendor_name": "Apex Logistics",
+    "date": "2026-08-22",
+    "po_reference": "PO-2144",
+    "tolerance_delta": "< 0.05%",
+    "gl_code": "GL-600: Travel & Transport",
+    "line_items": [
+        { "description": "Freight Shipping (NY to CA)", "quantity": 1, "unit_price": 750.00, "amount": 750.00 },
+        { "description": "Handling Fee", "quantity": 1, "unit_price": 140.00, "amount": 140.00 }
+    ],
+    "subtotal": 890.00,
+    "tax_amount": 0.00,
+    "total_amount": 890.00,
+    "confidence_scores": {
+        "vendor_name": 0.97,
+        "date": 0.99,
+        "po_reference": 0.88,
+        "gl_code": 0.96,
+        "total_amount": 0.98
+    },
+    "validation": {
+        "is_valid": true,
+        "is_duplicate": false,
+        "math_mismatch": false,
+        "message": "All integrity checks passed. Ready for ERP commit."
+    },
+    "idempotency_key": "hash_xyz993f0c19bbbb"
+  },
   "duplicate": {
     "document_id": "doc_9983_dup",
     "vendor_name": "TechSupply Co",
