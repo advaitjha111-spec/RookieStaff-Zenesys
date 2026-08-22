@@ -88,7 +88,11 @@ Extract all invoice data strictly as valid JSON with the following structure:
   },
   "line_items": [
     { "description": string, "quantity": number, "unit_price": number, "amount": number }
-  ]
+  ],
+  "subtotal": number,
+  "tax_rate_percent": number,
+  "tax_amount": number,
+  "currency": "INR" | "USD" | "EUR" | "GBP",
 }
 Return only raw JSON. Do not include markdown formatting or explanations.`;
 
@@ -135,6 +139,10 @@ Return only raw JSON. Do not include markdown formatting or explanations.`;
         po_reference: "INV-9982",
         gl_code: "GL-500: Hardware",
         total_amount: 1320.00,
+        subtotal: 1200.00,
+        tax_rate_percent: 10,
+        tax_amount: 120.00,
+        currency: "INR",
         confidence_scores: {
           vendor_name: 0.99,
           date: 0.98,
@@ -143,8 +151,7 @@ Return only raw JSON. Do not include markdown formatting or explanations.`;
         },
         line_items: [
           { description: "Server Rack 42U", quantity: 1, unit_price: 800.00, amount: 800.00 },
-          { description: "Cat6 Patch Cables (Pack of 10)", quantity: 1, unit_price: 400.00, amount: 400.00 },
-          { description: "Tax (10%)", quantity: 1, unit_price: 120.00, amount: 120.00 }
+          { description: "Cat6 Patch Cables (Pack of 10)", quantity: 1, unit_price: 400.00, amount: 400.00 }
         ]
       };
     }
@@ -155,7 +162,43 @@ Return only raw JSON. Do not include markdown formatting or explanations.`;
       0
     );
     const statedTotal = Number(extractedData.total_amount);
-    const mathMismatch = Math.abs(calculatedSum - statedTotal) > 0.01;
+    const statedSubtotal = Number(extractedData.subtotal || calculatedSum);
+    const taxAmount = Number(extractedData.tax_amount || 0);
+    const taxRate = Number(extractedData.tax_rate_percent || 0);
+    const currency = extractedData.currency || 'INR';
+
+    let taxMismatch = false;
+    let taxMessage = "";
+
+    // Verify tax logic
+    if (taxRate > 0) {
+      const expectedTax = statedSubtotal * (taxRate / 100);
+      if (Math.abs(expectedTax - taxAmount) > 0.05) {
+         taxMismatch = true;
+         taxMessage = `Tax mismatch: Expected ${currency} ${expectedTax.toFixed(2)} based on ${taxRate}%, found ${currency} ${taxAmount.toFixed(2)}. `;
+      }
+    }
+
+    if (Math.abs((statedSubtotal + taxAmount) - statedTotal) > 0.05) {
+      taxMismatch = true;
+      taxMessage += `Total mismatch: Subtotal + Tax (${currency} ${(statedSubtotal + taxAmount).toFixed(2)}) != Total (${currency} ${statedTotal.toFixed(2)}).`;
+    }
+
+    const mathMismatch = Math.abs(calculatedSum - statedSubtotal) > 0.05 || taxMismatch;
+    
+    // Currency Conversion
+    let convertedBaseAmount = statedTotal;
+    let displayCurrencies = currency;
+    if (currency === 'USD') {
+      convertedBaseAmount = statedTotal * 83.5;
+      displayCurrencies = `USD -> INR`;
+    } else if (currency === 'EUR') {
+      convertedBaseAmount = statedTotal * 90.2;
+      displayCurrencies = `EUR -> INR`;
+    } else if (currency === 'GBP') {
+      convertedBaseAmount = statedTotal * 105.4;
+      displayCurrencies = `GBP -> INR`;
+    }
 
     // Duplicate check in Supabase ledger
     const { data: matchedRecords, error: dbError } = await supabase
@@ -172,15 +215,17 @@ Return only raw JSON. Do not include markdown formatting or explanations.`;
       document_id: extractedData.po_reference || `DOC-${Date.now().toString().slice(-4)}`,
       engine_used: model,
       ...extractedData,
+      converted_inr_amount: convertedBaseAmount,
+      currency_display: displayCurrencies,
       validation: {
         is_valid: !mathMismatch && !isDuplicate,
         is_duplicate: isDuplicate,
         math_mismatch: mathMismatch,
         calculated_sum: calculatedSum,
         message: isDuplicate
-          ? `Duplicate record detected in Supabase (Found record for ${extractedData.vendor_name} with total ₹${statedTotal.toFixed(2)}).`
+          ? `Duplicate record detected in Supabase (Found record for ${extractedData.vendor_name} with total ${currency} ${statedTotal.toFixed(2)}).`
           : mathMismatch
-            ? `Line item sum (₹${calculatedSum.toFixed(2)}) does not match claimed total (₹${statedTotal.toFixed(2)}).`
+            ? taxMismatch ? taxMessage : `Line item sum (${currency} ${calculatedSum.toFixed(2)}) does not match claimed subtotal (${currency} ${statedSubtotal.toFixed(2)}).`
             : `Reconciled via ${model} against Supabase ledger and verified.`
       }
     };

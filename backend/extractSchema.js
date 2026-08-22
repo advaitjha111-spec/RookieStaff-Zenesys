@@ -38,7 +38,9 @@ export const EXTRACT_SCHEMA = {
                     }
                 },
                 subtotal: { type: "number" },
+                tax_rate_percent: { type: "number" },
                 tax_amount: { type: "number" },
+                currency: { type: "string", enum: ["INR", "USD", "EUR", "GBP", "OTHER"] },
                 total_amount: { type: "number" },
                 confidence_scores: {
                     type: "object",
@@ -61,7 +63,9 @@ export const EXTRACT_SCHEMA = {
                 "gl_code",
                 "line_items",
                 "subtotal",
+                "tax_rate_percent",
                 "tax_amount",
+                "currency",
                 "total_amount",
                 "confidence_scores"
             ],

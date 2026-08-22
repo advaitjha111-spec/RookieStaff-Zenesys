@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, ShieldAlert, AlertTriangle, ChevronRight } from 'lucide-react';
 import {
@@ -12,6 +12,11 @@ import {
   Area,
   CartesianGrid
 } from 'recharts';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const spendByGLData = [
   { category: 'GL-500 H/W', amount: 48500 },
@@ -39,6 +44,46 @@ const recentLedgerFeed = [
 ];
 
 export default function CommandCenter({ setView, onSelectInvoice, isDark }) {
+  const [feed, setFeed] = useState(recentLedgerFeed);
+  const [metrics, setMetrics] = useState({
+    ingested: 1248,
+    interceptedAmt: 42500,
+    interceptedCount: 32
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:invoices')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'invoices' }, (payload) => {
+        const newInvoice = payload.new;
+        
+        // Update Feed
+        setFeed(prev => [
+          {
+            id: newInvoice.document_id,
+            vendor: newInvoice.vendor_name,
+            amount: newInvoice.total_amount,
+            gl: newInvoice.gl_code || 'GL-UNKNOWN',
+            status: newInvoice.status || 'VERIFIED',
+            time: 'Just now',
+            confidence: '99%'
+          },
+          ...prev.slice(0, 4) // keep last 5
+        ]);
+
+        // Update metrics
+        setMetrics(prev => ({
+          ...prev,
+          ingested: prev.ingested + 1
+        }));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   return (
     <motion.div
       key="dashboard"
@@ -92,7 +137,7 @@ export default function CommandCenter({ setView, onSelectInvoice, isDark }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="p-4 rounded-xl bg-slate-900/5 dark:bg-white/5 backdrop-blur-md border border-slate-900/10 dark:border-white/10 shadow-lg shadow-black/40">
           <span className="text-[10px] font-mono text-slate-900 dark:text-white/50 uppercase font-bold">24H Ingested Volume</span>
-          <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">1,248</div>
+          <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1 tabular-nums">{metrics.ingested.toLocaleString()}</div>
           <span className="text-[11px] text-emerald-400 font-mono mt-1 block">+14.2% from last cycle</span>
         </div>
 
@@ -104,8 +149,8 @@ export default function CommandCenter({ setView, onSelectInvoice, isDark }) {
 
         <div className="p-4 rounded-xl bg-slate-900/5 dark:bg-white/5 backdrop-blur-md border border-slate-900/10 dark:border-white/10 shadow-lg shadow-black/40">
           <span className="text-[10px] font-mono text-slate-900 dark:text-white/50 uppercase font-bold">Fraudulent Spend Intercepted</span>
-          <div className="text-2xl font-bold font-mono text-rose-400 mt-1 tabular-nums">₹42,500.00</div>
-          <span className="text-[11px] text-rose-300 font-mono mt-1 block">32 Duplicate/Faulty records blocked</span>
+          <div className="text-2xl font-bold font-mono text-rose-400 mt-1 tabular-nums">₹{metrics.interceptedAmt.toLocaleString()}.00</div>
+          <span className="text-[11px] text-rose-300 font-mono mt-1 block">{metrics.interceptedCount} Duplicate/Faulty records blocked</span>
         </div>
 
         <div className="p-4 rounded-xl bg-slate-900/5 dark:bg-white/5 backdrop-blur-md border border-slate-900/10 dark:border-white/10 shadow-lg shadow-black/40">
@@ -197,7 +242,7 @@ export default function CommandCenter({ setView, onSelectInvoice, isDark }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {recentLedgerFeed.map((row, idx) => (
+              {feed.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-900/5 dark:bg-white/5 transition-colors">
                   <td className="py-2.5">
                     {row.status === 'VERIFIED' && <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">VERIFIED</span>}

@@ -168,6 +168,27 @@ export default function IngestionPipeline({ onExtracted }) {
           <span className="font-semibold text-slate-700 dark:text-slate-300">Deterministic Math Gate</span>
         </div>
       </div>
+
+      {/* 1-Click Demo Scenario Switcher */}
+      <div className="pt-4 mt-6 border-t border-slate-200 dark:border-slate-800/60">
+        <div className="text-center mb-3">
+          <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">Live Demo Testing Scenarios</span>
+        </div>
+        <div className="flex flex-wrap justify-center gap-3">
+          <button onClick={() => onExtracted(mockData.clean)} className="px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold flex flex-col items-center gap-1 transition-colors">
+            <span>Scenario A: Clean Pass</span>
+            <span className="text-[9px] font-normal opacity-80">Acme Cloud | ₹1,450.00</span>
+          </button>
+          <button onClick={() => onExtracted(mockData.duplicate)} className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[11px] font-bold flex flex-col items-center gap-1 transition-colors">
+            <span>Scenario B: Duplicate Trap</span>
+            <span className="text-[9px] font-normal opacity-80">TechSupply | Collision</span>
+          </button>
+          <button onClick={() => onExtracted(mockData.mismatch)} className="px-4 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold flex flex-col items-center gap-1 transition-colors">
+            <span>Scenario C: Math Desync</span>
+            <span className="text-[9px] font-normal opacity-80">Line Sums != Total</span>
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 }
